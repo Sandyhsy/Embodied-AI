@@ -1,18 +1,18 @@
-# SO-ARM101 MuJoCo Simulation
+# SO-ARM100 MuJoCo Simulation
 
-A CPU-only physics simulation of the **SO-ARM101** 6-DOF robot arm using [MuJoCo](https://mujoco.org/). This project lets you explore the robot's kinematics through a Jupyter notebook, interact with it using keyboard controls in a live 3D viewer, and inspect the full MJCF model.
+A CPU-only physics simulation of the **TRS SO-ARM100** robot arm using the official [MuJoCo Menagerie](https://github.com/chernyadev/mujoco_menagerie/tree/add-so-arm100/trs_so_arm100) model. Includes a guided Jupyter notebook and a live keyboard-controlled 3D viewer.
 
 ---
 
 ## What Does This Project Do?
 
-This simulation provides three things:
+This simulation uses the **real MJCF model** (with actual STL meshes) from MuJoCo Menagerie, not a simplified stand-in. It provides three things:
 
-1. **Jupyter Notebook (`01_mujoco_basics.ipynb`)** — A guided walkthrough of MuJoCo fundamentals, from loading a model to computing forward kinematics and visualising the arm's reachable workspace.
+**1. Jupyter Notebook (`01_mujoco_basics.ipynb`)** — A step-by-step walkthrough of MuJoCo fundamentals using the Menagerie SO-ARM100. Covers model loading, CPU offscreen rendering, simulation stepping, named pose rendering, and 3D workspace visualisation via forward kinematics.
 
-2. **Keyboard-Controlled Viewer (`so_arm101_keyboard_sim.py`)** — A live interactive window where you can drive each joint of the SO-ARM101 with keyboard keys, load preset poses, toggle physics, and print the TCP position in real time.
+**2. Keyboard Viewer (`so_arm101_keyboard_sim.py`)** — Opens a live MuJoCo 3D window where you drive each joint with keyboard keys, switch between preset poses, toggle physics, and read TCP (tool-center-point) position in the terminal.
 
-3. **Standalone MJCF Model (`so_arm101_model.xml`)** — The robot description file you can reuse in any MuJoCo project.
+**3. Model Downloader (`download_so_arm100.py`)** — Fetches the full SO-ARM100 model (XML + STL assets) from the Menagerie GitHub branch directly to your machine. Must be run before the notebook or viewer.
 
 No GPU is required — everything runs on CPU.
 
@@ -22,23 +22,23 @@ No GPU is required — everything runs on CPU.
 
 | File | Purpose |
 |------|---------|
-| `setup_and_run.sh` | One-command installer: installs all Python dependencies and optionally launches the keyboard simulation |
-| `01_mujoco_basics.ipynb` | Jupyter notebook covering MuJoCo basics through SO-ARM101 forward kinematics (5 code cells + 1 bonus) |
-| `so_arm101_keyboard_sim.py` | Interactive keyboard-driven simulation with a live MuJoCo 3D viewer |
-| `so_arm101_model.xml` | Standalone MJCF (XML) robot model for the SO-ARM101 |
+| `download_so_arm100.py` | Downloads the real SO-ARM100 model from GitHub into `models/trs_so_arm100/` |
+| `01_mujoco_basics.ipynb` | Jupyter notebook — 5 code cells covering MuJoCo basics through workspace analysis |
+| `so_arm101_keyboard_sim.py` | Interactive keyboard simulation with live MuJoCo 3D viewer |
+| `setup_and_run.sh` | One-command installer for all Python dependencies |
 | `README.md` | This file |
+
+> `so_arm101_model.xml` (the old hand-written approximation) is no longer used — the Menagerie model replaces it.
 
 ---
 
 ## Packages to Install
 
-Run this once in your terminal:
-
 ```bash
 pip install mujoco "gymnasium[mujoco]" matplotlib numpy ipywidgets jupyterlab requests
 ```
 
-Or use the provided script which handles everything automatically:
+Or use the provided script:
 
 ```bash
 bash setup_and_run.sh
@@ -46,8 +46,8 @@ bash setup_and_run.sh
 
 **Minimum versions tested:**
 
-| Package | Version |
-|---------|---------|
+| Package | Minimum Version |
+|---------|----------------|
 | `mujoco` | ≥ 3.1 |
 | `numpy` | ≥ 1.24 |
 | `matplotlib` | ≥ 3.7 |
@@ -58,13 +58,28 @@ bash setup_and_run.sh
 
 ## How to Run
 
-### Option A — Jupyter Notebook (Task 1.1)
+### Step 0 — Download the model (required once)
+
+```bash
+python download_so_arm100.py
+```
+
+This fetches the Menagerie SO-ARM100 from:
+`https://github.com/chernyadev/mujoco_menagerie/tree/add-so-arm100/trs_so_arm100`
+
+and saves it to `models/trs_so_arm100/` (XML + STL assets).
+
+---
+
+### Option A — Jupyter Notebook
 
 ```bash
 jupyter lab 01_mujoco_basics.ipynb
 ```
 
-Run cells top to bottom. The setup cell at the top auto-installs any missing packages.
+Run cells from top to bottom. Each cell is self-contained and prints its own output.
+
+---
 
 ### Option B — Interactive Keyboard Simulation
 
@@ -72,141 +87,186 @@ Run cells top to bottom. The setup cell at the top auto-installs any missing pac
 python so_arm101_keyboard_sim.py
 ```
 
-A MuJoCo 3D viewer window will open. Use the keyboard to control the arm (see controls below).
+A MuJoCo 3D viewer window opens immediately. Use the keyboard controls below.
 
-### Option C — Quick Sanity Check
+---
+
+### Option C — View the Raw Model
 
 ```bash
-python -c "import mujoco; print(mujoco.__version__)"
-python -m mujoco.viewer
+python -m mujoco.viewer --mjcf models/trs_so_arm100/scene.xml
 ```
 
-The first command prints the installed version. The second opens MuJoCo's built-in viewer with a default scene.
+Opens MuJoCo's built-in viewer with the SO-ARM100 scene and default mouse/keyboard navigation.
 
 ---
 
 ## Keyboard Controls (Interactive Simulation)
 
+### Joint Control (each press = one step)
+
+| Key | Joint | Action |
+|-----|------|--------|
+| `Y` / `H` | Joint 1 — Base Rotation | + / − |
+| `O` / `L` | Joint 2 — Shoulder Pitch | + / − |
+| `,` / `.` | Joint 3 — Elbow | + / − |
+| `Q` / `Z` | Joint 4 — Wrist Pitch | + / − |
+| `E` / `F` | Joint 5 — Wrist Roll | + / − |
+| `C` / `V` | Joint 6 — Gripper / Jaw | open / close |
+
+---
+
+### Preset Poses
+
+| Key | Description |
+|-----|------------|
+| `4` | Home (all joints reset to zero) |
+| `5` | Elbow-up pose |
+| `6` | Reach forward |
+| `7` | Reach left |
+| `8` | Reach right |
+| `9` | Wave motion |
+
+---
+
+### Simulation Controls
+
 | Key | Action |
 |-----|--------|
-| `Q` / `A` | Joint 1 — Base rotation (left / right) |
-| `W` / `S` | Joint 2 — Shoulder pitch (up / down) |
-| `E` / `D` | Joint 3 — Elbow (flex / extend) |
-| `R` / `F` | Joint 4 — Wrist pitch (up / down) |
-| `T` / `G` | Joint 5 — Wrist roll (clockwise / counter-clockwise) |
-| `Y` / `H` | Gripper — Open / Close |
-| `1` | Preset: Home (all joints at zero) |
-| `2` | Preset: Elbow-up pose |
-| `3` | Preset: Reach forward |
-| `4` | Preset: Reach left |
-| `5` | Preset: Reach right |
-| `Space` | Toggle physics mode (PD position control ↔ free-fall) |
-| `P` | Print current joint angles and TCP (X, Y, Z) position to terminal |
-| `ESC` | Quit |
+| `Space` | Toggle physics mode (PD control ↔ free-fall) |
+| `ESC` | Quit viewer |
+
+---
+
+### Notes
+
+- Each key press increments or decrements the joint target position by a fixed step.
+- Revolute joints use radians; prismatic joints use meters.
+- The controller updates actuator targets at every simulation step.
+- Joint limits are automatically enforced using MuJoCo joint ranges.
 
 ---
 
 ## What You Will See
 
-### Notebook — Cell by Cell
-
-**Cell 1 — Model Summary**
-Prints a table of the model's degrees of freedom, body count, joint names, and joint limits. Example:
+### `download_so_arm100.py`
 
 ```
-MODEL SUMMARY
-══════════════════════════════════════════════
-  nq   (generalized positions):  7
-  nv   (generalized velocities): 7
-  nbody (rigid bodies):          9
-  njnt  (joints):                7
-  nactuator (actuators):         7
-══════════════════════════════════════════════
-Joints:
-  [0] joint1_rotation     range: [-3.14, 3.14] rad
-  [1] joint2_pitch        range: [-1.57, 1.57] rad
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SO-ARM100 MuJoCo Menagerie — Model Downloader
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▶  Fetching file list from GitHub API...
+   Found 4 items at top level.
+
+  ✓  models/trs_so_arm100/scene.xml      (1,204 bytes)
+  ✓  models/trs_so_arm100/so_arm100.xml  (8,931 bytes)
+  ✓  models/trs_so_arm100/assets/base.stl        (25,600 bytes)
+  ✓  models/trs_so_arm100/assets/link1.stl       (18,432 bytes)
   ...
-```
 
-**Cell 2 — Rendered Frame**
-Displays a side-by-side matplotlib figure of the model rendered from two camera angles (CPU offscreen rendering, saved as `render_frame.png`).
-
-**Cell 3 — Joint Positions Over Time**
-Runs 1000 simulation steps with a random initial velocity and plots all joint positions as time-series curves (saved as `joint_positions.png`). Shows how the physics engine propagates motion.
-
-**Cell 4 — SO-ARM101 Load & Render**
-Loads the SO-ARM101 MJCF, prints the full model summary including all 7 actuators, and renders the arm in its rest pose (saved as `so_arm101_rest.png`).
-
-**Cell 5 — Forward Kinematics & Workspace**
-Evaluates the TCP (tool center point) position for several named poses and prints a table:
-
-```
-Config               X        Y        Z
-────────────────────────────────────────────
-Home (zero)      0.0000   0.0000   0.5050
-Elbow up        -0.0000   0.0000   0.4520
-Reach forward    0.2841   0.0000   0.3610
-...
-```
-
-Then samples 2000 random joint configurations and plots the reachable workspace as a 3D scatter plot and an XZ projection (saved as `so_arm101_workspace.png`).
-
-**Bonus Cell — Interactive Sliders**
-If `ipywidgets` is installed, renders a live image that updates as you drag sliders for each joint. Also shows the TCP position above the rendered image. Falls back to a static 6-pose grid if widgets are unavailable (saved as `so_arm101_poses.png`).
-
-### Keyboard Simulation — Terminal Output
-
-When you press `P` in the viewer:
-
-```
-─── Current State ──────────────────────────────
-  joint1_rotation              q=+0.3100  target=+0.3100
-  joint2_pitch                 q=+0.5000  target=+0.5000
-  joint3_elbow                 q=-0.8000  target=-0.8000
-  joint4_wrist_pitch           q=+0.3000  target=+0.3000
-  joint5_wrist_roll            q=+0.0000  target=+0.0000
-  gripper_left                 q=+0.0000  target=+0.0000
-  gripper_right                q=+0.0000  target=+0.0000
-
-  TCP position: X=0.2341  Y=0.1023  Z=0.3871
-────────────────────────────────────────────────
-```
-
-When you load a preset:
-
-```
-  → Preset: Elbow Up
-```
-
-When you toggle physics:
-
-```
-  → Mode: FREE-FALL physics
+▶  Testing model load in MuJoCo...
+    Loaded scene.xml
+      nq=6  nv=6  nbody=8
+      Joints:
+        [0] Rotation
+        [1] Pitch
+        ...
 ```
 
 ---
 
-## SO-ARM101 Model Specification
+### Notebook — Cell by Cell
 
-| Property | Value |
-|----------|-------|
-| DOF | 6 (5 revolute + 1 parallel gripper) |
-| Total height (extended) | ~0.56 m |
-| Actuator type | Position-controlled (PD) |
-| Timestep | 2 ms |
-| End-effector sensor | Position (XYZ) + Quaternion |
-| GPU required | No |
+**Cell 1 — Model Summary**
 
-**Joint ranges:**
+Prints a formatted table of the model's DOF, body count, joint names and ranges, actuator names and gear ratios, and full body tree with parent links. Example excerpt:
 
-| Joint | Axis | Range |
-|-------|------|-------|
-| joint1_rotation | Z | ±180° |
-| joint2_pitch | Y | ±90° |
-| joint3_elbow | Y | ±150° |
-| joint4_wrist_pitch | Y | ±90° |
-| joint5_wrist_roll | Z | ±180° |
-| gripper (each finger) | slide | 0–25 mm |
+```
+╔════════════════════════════════════════════════════╗
+║        TRS SO-ARM100 — Model Summary               ║
+╠════════════════════════════════════════════════════╣
+║  nq   (generalized positions)  : 6                 ║
+║  nbody (rigid bodies)          : 8                 ║
+║  na    (actuators)             : 6                 ║
+║  nmesh  (meshes)               : 8                 ║
+╠════════════════════════════════════════════════════╣
+║  Joint name                     Range (rad/m)      ║
+╠════════════════════════════════════════════════════╣
+║  [0] Rotation           [-3.14, +3.14]             ║
+║  [1] Pitch              [-1.57, +1.57]             ║
+...
+```
+
+**Cell 2 — Four-View Render**
+
+Saves `so_arm100_views.png` — a 4-panel matplotlib figure showing the SO-ARM100 in its rest pose from Front-Left, Front-Right, Side (Y), and Top-Down camera angles. Rendered entirely on CPU using MuJoCo's offscreen renderer.
+
+**Cell 3 — Dynamics Plot**
+
+Runs 1000 simulation steps with a small random velocity kick and saves `so_arm100_dynamics.png` — two stacked plots of joint positions (rad) and joint velocities (rad/s) over time, one curve per joint.
+
+**Cell 4 — Named Pose Grid**
+
+Saves `so_arm100_poses.png` — a 2×3 grid of rendered images showing six preset configurations: Home, Elbow Up, Reach Forward, Reach Left, Reach Right, and Wave.
+
+**Cell 5 — Forward Kinematics & Workspace**
+
+Prints a table of TCP (X, Y, Z) position and quaternion for each named pose, then samples 3000 random joint configurations and saves `so_arm100_workspace.png` — a three-panel figure with a 3D reachable workspace scatter plot, XZ side-view projection, and XY top-view projection.
+
+**Bonus Cell — Interactive Sliders**
+
+If `ipywidgets` is installed, displays a side-by-side layout of joint sliders and a live-rendered image that updates as you drag. The title above the image shows the current TCP position in metres. If `ipywidgets` is missing, prints an install instruction.
+
+---
+
+### Keyboard Simulation — Terminal Output
+
+On startup:
+```
+Auto-detected joints:
+  J1 (rotation)      → "Rotation"
+  J2 (pitch)         → "Pitch"
+  J3 (elbow)         → "Elbow"
+  J4 (wrist_p)       → "Wrist_Pitch"
+  J5 (wrist_r)       → "Wrist_Roll"
+  J6 (gripper)       → "Jaw"
+
+End-effector site: [3] "end_effector"
+```
+
+Press **P**:
+```
+─── Current State ─────────────────────────────────────────
+  Rotation                       q=+0.3100 rad   target=+0.3100
+  Pitch                          q=+0.5000 rad   target=+0.5000
+  Elbow                          q=-0.8000 rad   target=-0.8000
+  Wrist_Pitch                    q=+0.3000 rad   target=+0.3000
+  Wrist_Roll                     q=+0.0000 rad   target=+0.0000
+  Jaw                            q=+0.0000 rad   target=+0.0000
+
+  TCP position:  X=0.2341  Y=0.1023  Z=0.3871 m
+────────────────────────────────────────────────────────────
+```
+
+Press **Space**:
+```
+  → Physics mode: FREE-FALL (gravity, no control)
+```
+
+---
+
+## Source Model
+
+| Property | Detail |
+|----------|--------|
+| Repository | `chernyadev/mujoco_menagerie` |
+| Branch | `add-so-arm100` |
+| Folder | `trs_so_arm100/` |
+| Full URL | https://github.com/chernyadev/mujoco_menagerie/tree/add-so-arm100/trs_so_arm100 |
+| Manufacturer | The Robot Studio (TRS) |
+| DOF | 6 (5 revolute + 1 jaw/gripper) |
+| Geometry | Real STL meshes |
+| Actuator type | Position-controlled |
 
 ---
 
@@ -214,6 +274,6 @@ When you toggle physics:
 
 - [MuJoCo Documentation](https://mujoco.readthedocs.io/)
 - [MuJoCo Menagerie — robot model collection](https://github.com/google-deepmind/mujoco_menagerie)
+- [TRS SO-ARM100 Menagerie branch](https://github.com/chernyadev/mujoco_menagerie/tree/add-so-arm100/trs_so_arm100)
 - [MuJoCo Playground](https://playground.mujoco.org/)
-- [LeRobot / SO-ARM101](https://github.com/huggingface/lerobot)
-- [TheRobotStudio SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100)
+- [LeRobot / SO-ARM series](https://github.com/huggingface/lerobot)
