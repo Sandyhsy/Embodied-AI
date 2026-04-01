@@ -84,7 +84,7 @@ Run cells from top to bottom. Each cell is self-contained and prints its own out
 ### Option B — Interactive Keyboard Simulation
 
 ```bash
-python so_arm101_keyboard_sim.py
+python so_arm100_keyboard_sim.py
 ```
 
 A MuJoCo 3D viewer window opens immediately. Use the keyboard controls below.
