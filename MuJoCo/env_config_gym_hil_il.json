@@ -56,7 +56,7 @@
     }
   },
   "dataset": {
-    "repo_id": "Sandyhsy/il_gym_pickcube_debug6",
+    "repo_id": "Sandyhsy/il_gym_pickcube",
     "root": null,
     "task": "PandaPickCubeKeyboard-v0",
     "num_episodes_to_record": 1,
